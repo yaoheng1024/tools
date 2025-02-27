@@ -115,7 +115,7 @@ function startClipboardMonitor {
     $job | Remove-Job
   }
   try {
-    Start-Job -Name clipboardMonitor -FilePath $PSHOME\customScript\clipboardMonitor.ps1
+    Start-Job -Name clipboardMonitor -FilePath $scriptRoot\powershell\clipboardMonitor.ps1
   }
   catch {
     showLog "An error occurred:"
