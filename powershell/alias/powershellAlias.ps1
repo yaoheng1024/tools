@@ -48,14 +48,19 @@ function pull {
   $gitStatus = git status
   if ($gitStatus -match 'Your branch is behind' -or $gitStatus -match 'Your branch and .* have diverged') {
     showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
-    showLog "执行stash操作"
-    git stash -u
+    $status = git status
+    $isWorkingTreeClean = $status -match 'working tree clean'
+    if ($isWorkingTreeClean -eq $false) {
+      showLog "有未提交的内容，为避免冲突，执行stash操作"
+      $stashMsg = git stash -u
+    }
     showLog "开始从远端拉取最新的代码"
     git pull --rebase
-    showLog "执行stash pop操作"
-    git stash pop
-  }
-  else {
+    if ($isWorkingTreeClean -eq $false) {
+      showLog "恢复stash的文件"
+      git stash pop
+    }
+  } else {
     git pull
   }
 }
