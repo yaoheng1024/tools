@@ -3,6 +3,38 @@ function showLog {
   Write-Host $msg -ForegroundColor Green
 }
 
+function isWorkingTreeClean {
+  $gitStatus = git status
+  if ($gitStatus -match 'working tree clean') {
+    return $true;
+  }
+  return $false
+}
+
+function isBranchBehindOrDiverged {
+  $gitStatus = git status
+  if ($gitStatus -match 'Your branch is behind' -or $gitStatus -match 'Your branch and .* have diverged') {
+    return $true
+  }
+  return $false;
+}
+
+function isBranchUpToDate {
+  $gitStatus = git status
+  if ($gitStatus -match 'Your branch is up to date') {
+    return $true
+  }
+  return $false
+}
+
+function hasCommitsToPush {
+  $gitStatus = git status
+  if (!($gitStatus -match 'Changes to be committed') -and ($gitStatus -match 'Your branch and .* have diverged' -or $gitStatus -match 'Your branch is ahead of .* by')) {
+    return $true;
+  }
+  return $false
+}
+
 # 提交bug
 function _cm {
   param([string] $commitMsg, [bool] $skipVerify)
@@ -23,7 +55,7 @@ function cmbAndPush {
   param([string] $id, [string] $msg, [bool] $skipVerify)
   cmb $id $msg $skipVerify
   $gitStatus = git status
-  if (!($gitStatus -match 'Changes to be committed') -and ($gitStatus -match 'Your branch and .* have diverged' -or $gitStatus -match 'Your branch is ahead of .* by')) {
+  if (hasCommitsToPush -eq $true) {
     return push;
   }
   showLog("commit失败了")
@@ -33,6 +65,16 @@ function cmf {
   param([string] $msg, [bool] $skipVerify)
   $commitMsg = "feat(otl): $msg"
   _cm $commitMsg $skipVerify
+}
+
+function cmfAndPush {
+  param([string] $id, [string] $msg, [bool] $skipVerify)
+  cmf $msg $skipVerify
+  $gitStatus = git status
+  if (hasCommitsToPush -eq $true) {
+    return push;
+  }
+  showLog("commit失败了")
 }
 
 function parseGitStatusResult {
@@ -45,24 +87,26 @@ function parseGitStatusResult {
 function pull {
   showLog "开始从远端获取最新的代码信息"
   git fetch
-  $gitStatus = git status
-  if ($gitStatus -match 'Your branch is behind' -or $gitStatus -match 'Your branch and .* have diverged') {
+  if (isBranchUpToDate -eq $true) {
+    showLog "当前分支已经是最新的代码，无需更新"
+    return
+  }
+  if (isBranchBehindOrDiverged -eq $true) {
     showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
-    $status = git status
-    $isWorkingTreeClean = $status -match 'working tree clean'
-    if ($isWorkingTreeClean -eq $false) {
+    $isClean = isWorkingTreeClean
+    if ($isClean -eq $false) {
       showLog "有未提交的内容，为避免冲突，执行stash操作"
       $stashMsg = git stash -u
     }
     showLog "开始从远端拉取最新的代码"
     git pull --rebase
-    if ($isWorkingTreeClean -eq $false) {
+    if ($isClean -eq $false) {
       showLog "恢复stash的文件"
       git stash pop
     }
-  } else {
-    git pull
+    return;
   }
+  git pull
 }
 
 function push {
