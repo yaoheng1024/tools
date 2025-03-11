@@ -54,7 +54,7 @@ function cmb {
 function cmbAndPush {
   param([string] $id, [string] $msg, [bool] $skipVerify)
   cmb $id $msg $skipVerify
-  $gitStatus = git status
+  git status
   if (hasCommitsToPush -eq $true) {
     return push;
   }
@@ -68,9 +68,9 @@ function cmf {
 }
 
 function cmfAndPush {
-  param([string] $id, [string] $msg, [bool] $skipVerify)
+  param([string] $msg, [bool] $skipVerify)
   cmf $msg $skipVerify
-  $gitStatus = git status
+  git status
   if (hasCommitsToPush -eq $true) {
     return push;
   }
@@ -89,24 +89,33 @@ function pull {
   git fetch
   if (isBranchUpToDate -eq $true) {
     showLog "当前分支已经是最新的代码，无需更新"
-    return
+    return true;
   }
-  if (isBranchBehindOrDiverged -eq $true) {
-    showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
-    $isClean = isWorkingTreeClean
-    if ($isClean -eq $false) {
-      showLog "有未提交的内容，为避免冲突，执行stash操作"
-      $stashMsg = git stash -u
+  if (isBranchBehindOrDiverged -eq $false) {
+    $pullResult = git pull
+    if ($pullResult -match 'CONFLICT') {
+      showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
+      return false;
     }
-    showLog "开始从远端拉取最新的代码"
-    git pull --rebase
-    if ($isClean -eq $false) {
-      showLog "恢复stash的文件"
-      git stash pop
-    }
-    return;
+    return true;
   }
-  git pull
+  showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
+  $isClean = isWorkingTreeClean
+  if ($isClean -eq $false) {
+    showLog "有未提交的内容，为避免冲突，执行stash操作"
+    git stash -u
+  }
+  showLog "开始从远端拉取最新的代码"
+  $pullResult = git pull --rebase
+  if ($pullResult -match 'CONFLICT') {
+    showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
+    return false;
+  }
+  if ($isClean -eq $false) {
+    showLog "恢复stash的文件"
+    git stash pop
+  }
+  return true;
 }
 
 function push {
