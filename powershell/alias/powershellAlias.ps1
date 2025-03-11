@@ -89,15 +89,15 @@ function pull {
   git fetch
   if (isBranchUpToDate -eq $true) {
     showLog "当前分支已经是最新的代码，无需更新"
-    return true;
+    return $true;
   }
   if (isBranchBehindOrDiverged -eq $false) {
     $pullResult = git pull
     if ($pullResult -match 'CONFLICT') {
       showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
-      return false;
+      return $false;
     }
-    return true;
+    return $true;
   }
   showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
   $isClean = isWorkingTreeClean
@@ -109,13 +109,13 @@ function pull {
   $pullResult = git pull --rebase
   if ($pullResult -match 'CONFLICT') {
     showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
-    return false;
+    return $false;
   }
   if ($isClean -eq $false) {
     showLog "恢复stash的文件"
     git stash pop
   }
-  return true;
+  return $true;
 }
 
 function push {
