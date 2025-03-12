@@ -6,7 +6,7 @@ function showLog {
 function isWorkingTreeClean {
   $gitStatus = git status
   if ($gitStatus -match 'working tree clean') {
-    return $true;
+    return $true
   }
   return $false
 }
@@ -16,7 +16,7 @@ function isBranchBehindOrDiverged {
   if ($gitStatus -match 'Your branch is behind' -or $gitStatus -match 'Your branch and .* have diverged') {
     return $true
   }
-  return $false;
+  return $false
 }
 
 function isBranchUpToDate {
@@ -30,7 +30,7 @@ function isBranchUpToDate {
 function hasCommitsToPush {
   $gitStatus = git status
   if (!($gitStatus -match 'Changes to be committed') -and ($gitStatus -match 'Your branch and .* have diverged' -or $gitStatus -match 'Your branch is ahead of .* by')) {
-    return $true;
+    return $true
   }
   return $false
 }
@@ -41,7 +41,7 @@ function _cm {
   showLog "git commit -m `"$commitMsg`""
   if ($skipVerify) {
     git commit -m $commitMsg --no-verify
-    return;
+    return
   }
   git commit -m $commitMsg
 }
@@ -56,7 +56,7 @@ function cmbAndPush {
   cmb $id $msg $skipVerify
   git status
   if (hasCommitsToPush -eq $true) {
-    return push;
+    return push
   }
   showLog("commit失败了")
 }
@@ -72,7 +72,7 @@ function cmfAndPush {
   cmf $msg $skipVerify
   git status
   if (hasCommitsToPush -eq $true) {
-    return push;
+    return push
   }
   showLog("commit失败了")
 }
@@ -89,15 +89,15 @@ function pull {
   git fetch
   if (isBranchUpToDate -eq $true) {
     showLog "当前分支已经是最新的代码，无需更新"
-    return $true;
+    return $true
   }
-  if (isBranchBehindOrDiverged -eq $false) {
+  if (-not (isBranchBehindOrDiverged)) {
     $pullResult = git pull
-    if ($pullResult -match 'CONFLICT') {
+    if ($pullResult -match 'CONFLICT' -or $pullResult -match 'error') {
       showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
-      return $false;
+      return $false
     }
-    return $true;
+    return $true
   }
   showLog "当前分支与远端分支有提交交叉，准备使用rebase更新代码"
   $isClean = isWorkingTreeClean
@@ -109,13 +109,13 @@ function pull {
   $pullResult = git pull --rebase
   if ($pullResult -match 'CONFLICT') {
     showLog "拉取代码时发生冲突，请手动解决冲突后再次执行pull操作"
-    return $false;
+    return $false
   }
   if ($isClean -eq $false) {
     showLog "恢复stash的文件"
     git stash pop
   }
-  return $true;
+  return $true
 }
 
 function push {
