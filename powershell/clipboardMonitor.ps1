@@ -12,9 +12,11 @@ while ($true) {
         $newClipboardData = $clipboardData -replace '\\', "/"
         # 打包好后的文件路径不带client/app的，所以要去掉
         $newClipboardData = $newClipboardData -replace 'client/app', ""
-    } elseif ($clipboardData -match '^webpack(?:-internal)?:///applications') {
+        # 去掉空格后的版本号
+        $newClipboardData = $newClipboardData -replace ' .*', ""
+    } elseif ($clipboardData -match '^webpack(?:-internal)?:/*applications') {
         # 从浏览器到vscode
-        $newClipboardData = $clipboardData -replace 'webpack(?:-internal)?:///applications/', ""
+        $newClipboardData = $clipboardData -replace 'webpack(?:-internal)?:/*applications/', ""
         $newClipboardData = $newClipboardData -replace '\?.*$', ""
     } elseif ($clipboardData -match '^【金山文档.+\n(https.*)') {
         # 改写金山文档分享链接格式
